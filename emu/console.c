@@ -33,6 +33,7 @@ long cycles = 0;
 
 static int activate_console = 0;
 static int console_active = 0;
+static int autof = 1;
 
 static void sigbrkhandler(int sigtype)
 {
@@ -220,6 +221,11 @@ void console_command()
   int regon = 0;
 
   for(;;) {
+    if (autof) {
+	autof = 0;
+	rpc = 0;
+	execute();
+    }
     activate_console = 0;
     console_active = 1;
     printf("> ");
@@ -402,8 +408,11 @@ void parse_cmdline(int argc, char **argv)
   if (--argc == 0)
     return;
   if (!strcmp(argv[1], "-h")) {
-    printf("%s: [file [...]]\n", argv[0]);
+    printf("%s: -h -n [file [...]]\n", argv[0]);
     exit(0);
+  }
+  if (!strcmp(argv[1], "-n")) {
+      autof = 0;
   }
   while (argc-- > 0)
     load_motos1(*++argv);
