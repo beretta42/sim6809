@@ -1,3 +1,12 @@
+SRCS = console.c dis6809.c emu6809.c inst6809.c int6809.c intel.c memory.c
+SRCS += misc.c miscutils.c motorola.c ../hardware/acia.c
 
-all:
-	gcc -I/home/beretta/C/sim6809/emu -o sim6809 console.c dis6809.c emu6809.c inst6809.c int6809.c intel.c memory.c misc.c miscutils.c motorola.c ../hardware/acia.c -lutil
+CFLAGS = -I. -lutil
+
+all: sim6809
+
+sim6809: $(SRCS)
+	gcc $(CFLAGS) -o sim6809 $(SRCS)
+
+clean:
+	rm -f *~ sim6809 *.o
