@@ -21,7 +21,6 @@
 #include <unistd.h>
 #include <pty.h>
 #include <fcntl.h>
-#include <alsa/asoundlib.h>
 #include <stdint.h>
 
 #include "../emu/config.h"
@@ -43,27 +42,10 @@ static long acia_cycles;
 
 static int master, slave;
 
-static snd_rawmidi_t *m_out = NULL;
-static snd_rawmidi_t *m_in = NULL;
-static snd_rawmidi_status_t *st = NULL;
-
 static void acia_run_pty();
-static void acia_run_midi();
 
 void (*acia_run)() = NULL;
 
-static int midi_init() {
-	int i;
-	if ((i = snd_rawmidi_open(&m_in, &m_out, "virtual", SND_RAWMIDI_SYNC)) < 0) {
-		printf("Couldn't open MIDI port: %s", snd_strerror(i));
-		return -1;
-	}
-	snd_rawmidi_nonblock (m_in, 1);
-	//snd_rawmidi_status(&m_in, &st);
-
-	acia_run = &acia_run_midi;
-	return 0;
-}
 
 static int pty_init() {
 	// configure a PTY and print its name on the console
@@ -113,21 +95,12 @@ int acia_init(int device) {
 	// tx register empty
 	acia.sr = 0x02;
 	
-	if (device == 0) { // MIDI
-		return midi_init();
-	} else {
-		return pty_init();
-	}
-	return -1;
+	return pty_init();
 }
 
 void acia_destroy() {
 	if (master) close(master);
 	if (slave) close(slave);
-
-	if (m_in) snd_rawmidi_close(m_in);
-	if (m_out) snd_rawmidi_close(m_out);	
-
 }
 
 static void acia_run_pty() {
@@ -161,36 +134,6 @@ static void acia_run_pty() {
 }
 
 int fct=0;
-
-static void acia_run_midi() {
-	// call this every time around the loop
-	int i;
-	char buf;
-
-	if (cycles < acia_cycles) return;  // nothing to do yet
-	acia_cycles = cycles + ACIA_CLK;	// nudge timer
-	// read a character?
-	i =snd_rawmidi_read(m_in, &buf, 1);
-	if(i != -11) {
-		acia.rdr = buf;
-		acia.sr |= 0x01;
-		if (acia.cr & 0x80) {
-			acia.sr |= 0x80;
-			firq();
-		}
-	}
-	
-	// got a character to send?
-	if (!(acia.sr & 0x02)) {
-		buf = acia.tdr;
-		snd_rawmidi_write(m_out, &buf, 1);
-		acia.sr |= 0x02;
-		if ((acia.cr & 0x60) == 0x20) {
-			acia.sr |= 0x80;
-			firq();
-		}
-	}
-}
 
 
 uint8_t acia_rreg(int reg) {
