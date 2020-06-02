@@ -220,10 +220,10 @@ void console_command()
   int i, r;
   int regon = 0;
 
+  reset();
   for(;;) {
     if (autof) {
 	autof = 0;
-	rpc = 0;
 	execute();
     }
     activate_console = 0;
