@@ -28,6 +28,7 @@
 #include "console.h"
 
 #include "../hardware/acia.h"
+#include "../hardware/packet.h"
 
 long cycles = 0;
 
@@ -104,7 +105,7 @@ int execute()
     while ((n = m6809_execute()) > 0 && !activate_console) {
       cycles += n;
       (*acia_run)();
-
+      packet_run();
     }
     if (activate_console && n > 0)
       cycles += n;
@@ -129,8 +130,8 @@ void execute_addr(tt_u16 addr)
   while (!activate_console && rpc != addr) {
     while ((n = m6809_execute()) > 0 && !activate_console && rpc != addr) {
       cycles += n;
-
       acia_run();
+      packet_run();
     }
     if (n == SYSTEM_CALL)
       activate_console = m6809_system();
@@ -429,6 +430,7 @@ int main(int argc, char **argv)
 
   // hardware drivers
   acia_init(1);
+  packet_init(1);
 
   console_command();
 

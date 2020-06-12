@@ -24,6 +24,7 @@
 #include "console.h"
 
 #include "../hardware/acia.h"
+#include "../hardware/packet.h"
 
 tt_u8 *ramdata;    /* 64 kb of ram */
 
@@ -43,6 +44,8 @@ tt_u8 get_memb(tt_u16 adr)
   switch (adr & 0xff00) {
     case 0xe100:	// ACIA
     	return acia_rreg(adr & 0xff);
+  case 0xe200:          // packet
+        return packet_rreg(adr & 0xff);
     default:
     	break;
   }
@@ -64,7 +67,10 @@ void set_memb(tt_u16 adr, tt_u8 val)
 
     switch (adr & 0xff00) {
       case 0xe100:	// ACIA
-        acia_wreg(adr & 0xff, val);
+        acia_wreg(adr & 0xf, val);
+	break;
+      case 0xe200:      // Packet
+	packet_wreg(adr & 0xf, val);
 	break;
       default:
         break;
