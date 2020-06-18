@@ -36,6 +36,7 @@
 #include <linux/if_tun.h>
 #include "../emu/config.h"
 #include "../emu/emu6809.h"
+#include "hardware.h"
 
 
 #define MAXBUF 2048
@@ -100,6 +101,7 @@ int packet_init(int device) {
     if (tunfd < 0) fprintf(stderr,"packet.c: Cannot open tunnel\n");
     else
 	fprintf(stderr,"opened tap device: %s\n", tundev);
+    hard_addfd(tunfd);
     system("ip link set tap0 up");
 }
 

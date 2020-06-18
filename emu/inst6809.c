@@ -17,10 +17,12 @@
 
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "config.h"
 #include "emu6809.h"
 #include "calc6809.h"
+#include "../hardware/hardware.h"
 
 void abx()
 {
@@ -287,6 +289,7 @@ void com()
 void cwai()
 {
   setcc((getcc() & get_i8()) | 0x80);
+  hard_wait();
 }
 
 void daa()

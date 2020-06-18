@@ -18,6 +18,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include <signal.h>
 #include <unistd.h>
 #include <ctype.h>
@@ -27,14 +28,15 @@
 #include "motorola.h"
 #include "console.h"
 
-#include "../hardware/acia.h"
-#include "../hardware/packet.h"
+#include "../hardware/hardware.h"
 
 long cycles = 0;
 
 static int activate_console = 0;
 static int console_active = 0;
 static int autof = 1;
+static int cps = 50000;
+static volatile int alrmf = 0;
 
 static void sigbrkhandler(int sigtype)
 {
@@ -96,16 +98,29 @@ int m6809_system(void)
   }
 }
 
+
+static void do_alarm(int sig) {
+    alrmf = 1;
+    signal(SIGALRM, do_alarm);
+    alarm(1);
+}
+
+
 int execute()
 {
   int n;
   int r = 0;
+  int i = 0;
 
   do {
     while ((n = m6809_execute()) > 0 && !activate_console) {
       cycles += n;
-      (*acia_run)();
-      packet_run();
+      i += n;
+      if (cps && i > cps) {
+	  pause();
+	  if (alrmf) i = 0;
+      }
+      hard_poll();
     }
     if (activate_console && n > 0)
       cycles += n;
@@ -130,8 +145,7 @@ void execute_addr(tt_u16 addr)
   while (!activate_console && rpc != addr) {
     while ((n = m6809_execute()) > 0 && !activate_console && rpc != addr) {
       cycles += n;
-      acia_run();
-      packet_run();
+      hard_poll();
     }
     if (n == SYSTEM_CALL)
       activate_console = m6809_system();
@@ -404,19 +418,36 @@ void console_command()
   }
 }
 
+static void printusage(void) {
+    puts("sim6809: -h -n [file [...]]\n"
+	 "  -t #  throttle to # cycles per second, 50k default, 0 = max\n"
+	 "  -h    print this help\n"
+	 "  -n    start machine in debugging console"
+	 );
+    exit(1);
+}
+
+
 void parse_cmdline(int argc, char **argv)
 {
-  if (--argc == 0)
+  if (--argc == 0) {
+    autof = 0;
     return;
-  if (!strcmp(argv[1], "-h")) {
-    printf("%s: -h -n [file [...]]\n", argv[0]);
-    exit(0);
   }
-  if (!strcmp(argv[1], "-n")) {
+  argv++;
+  if (!strcmp(*argv, "-h")) printusage();
+  if (!strcmp(*argv, "-n")) {
       autof = 0;
+      if (argc-- > 0) argv++;
+  }
+  if (!strcmp(*argv, "-t")) {
+      if (argc-- > 0) argv++;
+      else printusage();
+      cps = atoi(*argv++);
+      fprintf(stderr,"cps = %d\n", cps);
   }
   while (argc-- > 0)
-    load_motos1(*++argv);
+    load_motos1(*argv++);
 }
 
 int main(int argc, char **argv)
@@ -429,12 +460,14 @@ int main(int argc, char **argv)
   setup_brkhandler();
 
   // hardware drivers
-  acia_init(1);
-  packet_init(1);
+  hard_init();
+
+  do_alarm(0);
 
   console_command();
 
   // unload drivers
-  acia_destroy();
+  hard_deinit();
+
   return 0;
 }

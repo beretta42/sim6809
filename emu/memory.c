@@ -18,13 +18,13 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 #include "config.h"
 #include "emu6809.h"
 #include "console.h"
 
-#include "../hardware/acia.h"
-#include "../hardware/packet.h"
+#include "../hardware/hardware.h"
 
 tt_u8 *ramdata;    /* 64 kb of ram */
 
@@ -37,19 +37,8 @@ int memory_init(void)
 
 tt_u8 get_memb(tt_u16 adr)
 {
-  // not hardware
-  if ((adr & 0xf000) != 0xe000) return ramdata[adr];
-
-  // hardware mapper
-  switch (adr & 0xff00) {
-    case 0xe100:	// ACIA
-    	return acia_rreg(adr & 0xff);
-  case 0xe200:          // packet
-        return packet_rreg(adr & 0xff);
-    default:
-    	break;
-  }
-
+    if (adr > 0xff00 && adr < 0xfff0) return hard_get(adr);
+    return ramdata[adr];
 }
 
 tt_u16 get_memw(tt_u16 adr)
@@ -59,22 +48,8 @@ tt_u16 get_memw(tt_u16 adr)
 
 void set_memb(tt_u16 adr, tt_u8 val)
 {
-    // RAM or ROM map
-    if ((adr & 0xf000) != 0xe000) { // device map
-      ramdata[adr] = val;
-      return;
-    }
-
-    switch (adr & 0xff00) {
-      case 0xe100:	// ACIA
-        acia_wreg(adr & 0xf, val);
-	break;
-      case 0xe200:      // Packet
-	packet_wreg(adr & 0xf, val);
-	break;
-      default:
-        break;
-    }
+    if (adr > 0xff00 && adr < 0xfff0) hard_set(adr, val);
+    ramdata[adr] = val;
 }
 
 void set_memw(tt_u16 adr, tt_u16 val)

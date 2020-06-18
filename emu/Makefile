@@ -1,7 +1,8 @@
 SRCS = console.c dis6809.c emu6809.c inst6809.c int6809.c intel.c memory.c
 SRCS += misc.c miscutils.c motorola.c ../hardware/acia.c ../hardware/packet.c
+SRCS += ../hardware/timer.c ../hardware/hardware.c
 
-CFLAGS = -I. -lutil
+CFLAGS = -I. -lutil -lrt
 
 all: sim6809
 
