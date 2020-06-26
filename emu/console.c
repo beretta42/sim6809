@@ -460,7 +460,7 @@ int main(int argc, char **argv)
   setup_brkhandler();
 
   // hardware drivers
-  hard_init();
+  hard_init(argc, argv);
 
   do_alarm(0);
 

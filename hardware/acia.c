@@ -40,13 +40,13 @@
 
 #define BUFZ 256
 
-uint8_t ibuf[BUFZ];
-int ilen = 0;
-int ipos;
+static uint8_t ibuf[BUFZ];
+static int ilen = 0;
+static int ipos;
 
-uint8_t obuf[BUFZ];
-int olen = 0;
-int omode = 0;
+static uint8_t obuf[BUFZ];
+static int olen = 0;
+static int omode = 0;
 #define O_BUFMASK 3
 #define O_LBUF 0
 #define O_ZBUF 1
@@ -54,8 +54,8 @@ int omode = 0;
 #define O_FLUSH 4
 #define O_IE 128
 
-int irqen = 0;
-int irqf  = 0;
+static int irqen = 0;
+static int irqf  = 0;
 
 void acia_stop(void) {
     int i = fcntl(0, F_GETFL, 0);
@@ -68,6 +68,12 @@ void acia_start(void) {
 }
 
 int acia_init(int argc, char *argv[]) {
+    ilen = 0;
+    ipos = 0;
+    olen = 0;
+    omode = 0;
+    irqen = 0;
+    irqf = 0;
     acia_stop();
     hard_addfd(0);
     return 0;

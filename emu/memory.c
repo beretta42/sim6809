@@ -19,6 +19,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <string.h>
 
 #include "config.h"
 #include "emu6809.h"
@@ -31,7 +32,7 @@ tt_u8 *ramdata;    /* 64 kb of ram */
 int memory_init(void)
 {
   ramdata = (tt_u8 *)mmalloc(0x10000);
-
+  memset(ramdata, 0, 0x10000);
   return 1;
 }
 
