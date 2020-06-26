@@ -9,6 +9,7 @@
 #include "packet.h"
 #include "timer.h"
 #include "reset.h"
+#include "hardware.h"
 
 #define MAXFDS 10
 
@@ -16,6 +17,8 @@ int fds[MAXFDS];
 int fdp = 0;
 int maxfd = 0;
 
+int gargc = 0;
+char **gargv = NULL;
 
 /* wait until one of the fd's above are ready to read 
    or a signals has been generated.
@@ -53,12 +56,19 @@ void hard_poll(void) {
 }
 
 void hard_init(int argc, char *argv[]) {
+    gargc = argc;
+    gargv = argv;
     fdp = 0;
     maxfd = 0;
     acia_init(argc, argv);
-    packet_init(1);
+    packet_init(argc, argv);
     timer_init();
     reset_init(argc, argv);
+}
+
+void hard_reinit(void) {
+    hard_deinit();
+    hard_init(gargc, gargv);
 }
 
 void hard_deinit(void) {

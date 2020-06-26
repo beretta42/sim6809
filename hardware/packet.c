@@ -95,14 +95,24 @@ static int tun_alloc(char *dev, int flags)
     return fd;
 }
 
-int packet_init(int device) {
-    strcpy(tundev, "tap0");
+int packet_init(int argc, char *argv[]) {
+    char cmd[256];
+    int i;
+    for (i = 1; i < argc; i++) {
+	if (!strncmp(argv[i],"-d", 2)) {
+	    strcpy(tundev, argv[i]+2);
+	    goto go;
+	}
+    }
+    strcpy(tundev, "tap1");
+ go:
     tunfd = tun_alloc(tundev, IFF_TAP | IFF_NO_PI);
     if (tunfd < 0) fprintf(stderr,"packet.c: Cannot open tunnel\n");
     else
 	fprintf(stderr,"opened tap device: %s\n", tundev);
     hard_addfd(tunfd);
-    system("ip link set tap0 up");
+    sprintf(cmd, "ip link set %s up", tundev);
+    system(cmd);
     olen = 0;
     ilen = 0;
     ipos = ibuf;

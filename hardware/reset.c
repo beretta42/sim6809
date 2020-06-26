@@ -17,8 +17,6 @@
 
 
 static char *start = NULL;
-static int gargc;
-static char **gargv;
 static int nfd;
 static int irqen = 0;
 static int irqf  = 0;
@@ -28,8 +26,7 @@ static void reboot(void) {
     m6809_init();
     memory_init();
     load_motos1(start);
-    hard_deinit();
-    hard_init(gargc, gargv);
+    hard_reinit();
     reset();
 }
 
@@ -39,8 +36,6 @@ int reset_init(int argc, char *argv[]) {
     int ret;
 
     if (start == NULL) {
-	gargc = argc;
-	gargv = argv;
 	for (i = 1; i < argc; i++) {
 	    if (argv[i][0] != '-') {
 		start = argv[i];
