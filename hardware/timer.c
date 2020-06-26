@@ -51,6 +51,10 @@ int timer_init(void) {
     return 0;
 }
 
+void timer_deinit(void) {
+    timer_delete(t);
+}
+
 void timer_run(void) {
     int ret;
     if (iflg) {

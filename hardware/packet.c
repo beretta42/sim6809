@@ -103,6 +103,14 @@ int packet_init(int device) {
 	fprintf(stderr,"opened tap device: %s\n", tundev);
     hard_addfd(tunfd);
     system("ip link set tap0 up");
+    olen = 0;
+    ilen = 0;
+    ipos = ibuf;
+    status = 0;
+}
+
+void packet_deinit(void) {
+    close(tunfd);
 }
 
 void packet_run(void) {

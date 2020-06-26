@@ -8,7 +8,7 @@
 #include "acia.h"
 #include "packet.h"
 #include "timer.h"
-
+#include "reset.h"
 
 #define MAXFDS 10
 
@@ -49,16 +49,23 @@ void hard_poll(void) {
     acia_run();
     packet_run();
     timer_run();
+    reset_run();
 }
 
-void hard_init(void) {
-    acia_init(0, NULL);
+void hard_init(int argc, char *argv[]) {
+    fdp = 0;
+    maxfd = 0;
+    acia_init(argc, argv);
     packet_init(1);
     timer_init();
+    reset_init(argc, argv);
 }
 
 void hard_deinit(void) {
     acia_deinit();
+    packet_deinit();
+    timer_deinit();
+    reset_deinit();
 }
 
 
@@ -71,6 +78,8 @@ uint8_t hard_get(uint16_t adr) {
       return packet_rreg(adr & 0xf);
   case 0x20:
       return timer_rreg(adr & 0xf);
+  case 0x30:
+      return reset_rreg(adr & 0xf);
   default:
       return 0;
   }
@@ -85,6 +94,8 @@ void hard_set(uint16_t adr, uint8_t val) {
 	return packet_wreg(adr & 0xf, val);
     case 0x20:
 	return timer_wreg(adr & 0xf, val);
+    case 0x30:
+	return reset_wreg(adr & 0xf, val);
     default:
         return;
     }
