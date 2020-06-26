@@ -19,13 +19,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include <pty.h>
 #include <fcntl.h>
 #include <stdint.h>
 
 #include "../emu/config.h"
 #include "../emu/emu6809.h"
 #include "acia.h"
+#include "hardware.h"
 
 /*
    The 6850 ACIA in the Mirage is mapped at $E100
@@ -38,125 +38,95 @@
    RTS, CTS and DCD are not used, with the latter two held grounded
 */
 
-static long acia_cycles;
+#define BUFZ 256
 
-static int master, slave;
+uint8_t ibuf[BUFZ];
+int ilen = 0;
+int ipos;
 
-static void acia_run_pty();
+uint8_t obuf[BUFZ];
+int olen = 0;
+int omode = 0;
+#define O_BUFMASK 3
+#define O_LBUF 0
+#define O_ZBUF 1
+#define O_NBUF 2
+#define O_FLUSH 4
+#define O_IE 128
 
-void (*acia_run)() = NULL;
+int irqen = 0;
+int irqf  = 0;
 
+void acia_stop(void) {
+    int i = fcntl(0, F_GETFL, 0);
+    fcntl(0, F_SETFL, i & ~O_NONBLOCK);
+}
 
-static int pty_init() {
-	// configure a PTY and print its name on the console
-	int i;
+void acia_start(void) {
+    int i = fcntl(0, F_GETFL, 0);
+    fcntl(0, F_SETFL, i | O_NONBLOCK);
+}
 
-	pid_t pid = openpty(&master, &slave, NULL, NULL, NULL);
-	if (pid == -1) {
-		printf("openpty failed");
-		exit(1);
-	}   // FIXME better error handling
-	
-	if(pid == 0){
-		printf("ACIA port: %s\n", ttyname(slave));
-		// Ensure that the echo is switched off 
-		struct termios orig_termios;
-		if (tcgetattr (master, &orig_termios) < 0) {
-			perror ("ERROR getting current terminal's attributes");
-			return -1;
-		}
-		
-		orig_termios.c_lflag &= ~(ECHO | ECHOE | ECHOK | ECHONL | ICANON);
-		orig_termios.c_oflag &= ~(ONLCR);
-		orig_termios.c_cc[VTIME] = 0;
-		orig_termios.c_cc[VMIN] = 0;
-		
-		i = fcntl(master, F_GETFL, 0);
-		
-		fcntl(master, F_SETFL, i | O_NONBLOCK);
-		
-		if (tcsetattr (master, TCSANOW, &orig_termios) < 0) {
-			perror ("ERROR setting current terminal's attributes");
-			return -1;
-		}
+int acia_init(int argc, char *argv[]) {
+    acia_stop();
+    hard_addfd(0);
+    return 0;
+}
 
-		acia_run = &acia_run_pty;
-		return master; //Return the file descriptor
+void acia_deinit() {
+}
+
+void acia_run() {
+    int ret;
+
+    acia_start();
+    if (ilen == 0) {
+	ret = read(0, ibuf, BUFZ);
+	if (ret > 1) {
+	    ilen = ret;
+	    ipos = 0;
+	    if (irqen) {
+		irqf = 1;
+		irq();
+	    }
 	}
-	
-	printf("something failed\n");
-
-	return -1;
+    }
+    acia_stop();
 }
-
-
-int acia_init(int device) {
-
-	// tx register empty
-	acia.sr = 0x02;
-	
-	return pty_init();
-}
-
-void acia_destroy() {
-	if (master) close(master);
-	if (slave) close(slave);
-}
-
-static void acia_run_pty() {
-	// call this every time around the loop
-	int i;
-	char buf;
-
-	if (cycles < acia_cycles) return;  // nothing to do yet
-	acia_cycles = cycles + ACIA_CLK;	// nudge timer
-	// read a character?
-	i =read(master, &buf, 1);
-	if(i != -1) {
-		acia.rdr = buf;
-		acia.sr |= 0x01;
-		if (acia.cr & 0x80) {
-			acia.sr |= 0x80;
-			firq();
-		}
-	}
-	
-	// got a character to send?
-	if (!(get_memb(0xe100) & 0x02)) {
-		buf = acia.tdr;
-		write(master, &buf, 1);
-		acia.sr |= 0x02;
-		if ((acia.cr & 0x60) == 0x20) {
-			acia.sr |= 0x80;
-			firq();
-		}
-	}
-}
-
-int fct=0;
 
 
 uint8_t acia_rreg(int reg) {
-	// handle reads from ACIA registers
-	switch (reg & 0x01) {   // not fully mapped
-		case ACIA_SR:
-			return acia.sr;
-		case ACIA_RDR:
-			acia.sr &= 0x7e;	// clear IRQ, RDRF
-			return acia.rdr;
+    uint8_t i = 0;
+    switch (reg & 0x01) {
+    case 0:
+	if (ilen) i |= 1;
+	if (irqf) i |= 0x80;
+	return i;
+    case 1:
+	if (ilen) {
+	    ilen--;
+	    return ibuf[ipos++];
+	    irqf = 0;
 	}
-	return 0xff;	// maybe the bus floats
-}
-void acia_wreg(int reg, uint8_t val) {
-	// handle writes to ACIA registers
-	switch (reg & 0x01) {   // not fully mapped
-		case ACIA_CR:
-			acia.cr = val;
-			break;
-		case ACIA_TDR:
-			acia.tdr = val;
-			acia.sr &= 0x7d;	// clear IRQ, TDRE
-			break;
-	}
+    }
+    return 0xff;
 }
 
+void acia_wreg(int reg, uint8_t val) {
+    switch (reg & 0x01) {
+    case 0:
+	if (val & O_IE) irqen = 1;
+	omode = val & O_BUFMASK;
+	if (val & O_FLUSH) {
+	    write(1,obuf,olen);
+	}
+	break;
+    case 1:
+	obuf[olen++] = val;
+    send:
+	if (val == '\n' || olen == BUFZ) {
+	    write(1,obuf,olen);
+	    olen = 0;
+	}
+    }
+}

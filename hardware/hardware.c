@@ -46,19 +46,19 @@ void hard_addfd(int fd) {
 }
 
 void hard_poll(void) {
-    (*acia_run)();
+    acia_run();
     packet_run();
     timer_run();
 }
 
 void hard_init(void) {
-    acia_init(1);
+    acia_init(0, NULL);
     packet_init(1);
     timer_init();
 }
 
 void hard_deinit(void) {
-    acia_destroy();
+    acia_deinit();
 }
 
 
