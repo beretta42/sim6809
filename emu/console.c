@@ -271,6 +271,9 @@ void console_command()
       strptr = strcpy(copy, input);
 
     switch (next_char(&strptr)) {
+    case 4:
+      printf("quit disabled\n");
+      break;
     case 'a':
       printf("Begin upload\n");
       load_motos1_2(stdin);
@@ -338,6 +341,7 @@ void console_command()
       printf("   t               : flush PC history\n");
 #endif
       printf("   u               : toggle dump registers\n");
+      printf("   x               : reboot machine\n");
       printf("   y [0]           : show number of 6809 cycles [or set it to 0]\n");
       break;
     case 'l' :
@@ -435,6 +439,11 @@ void console_command()
 
 	  printf("Cycle counter: %ld\nEstimated time at %d hz : %g seconds\n", cycles, cps, sec);
       }
+      break;
+    case 'x' :
+      console_active = 0;
+      reset_reboot();
+      execute();
       break;
     default :
       printf("Undefined command. Type 'h' to show help.\n");
