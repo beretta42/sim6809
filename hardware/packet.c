@@ -104,7 +104,7 @@ int packet_init(int argc, char *argv[]) {
 	    goto go;
 	}
     }
-    strcpy(tundev, "tap1");
+    strcpy(tundev, "tap0");
  go:
     tunfd = tun_alloc(tundev, IFF_TAP | IFF_NO_PI);
     if (tunfd < 0) fprintf(stderr,"packet.c: Cannot open tunnel\n");
