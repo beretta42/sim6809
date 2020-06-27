@@ -23,6 +23,7 @@
 #include <unistd.h>
 #include <termios.h>
 #include <ctype.h>
+#include <errno.h>
 
 #include "config.h"
 #include "emu6809.h"
@@ -30,6 +31,7 @@
 #include "console.h"
 
 #include "../hardware/hardware.h"
+#include "../hardware/reset.h"
 
 long cycles = 0;
 
@@ -236,6 +238,7 @@ void console_command()
   long n;
   int i, r;
   int regon = 0;
+  int ret;
 
   reset();
   for(;;) {
@@ -247,7 +250,18 @@ void console_command()
     console_active = 1;
     printf("> ");
     fflush(stdout);
-    if(fgets(input, 80, stdin) == 0) {
+
+    ret = read(0, input, 80);
+    if (ret < 0) {
+	if (errno == EINTR && reset_hupf) {
+	    console_active = 0;
+	    reset_hupf = 0;
+	    reset_reboot();
+	    execute();
+	}
+	continue;
+    }
+    if (ret == 0) {
 	if (noquit == 0) return;
 	else printf("quit disabled\n");
     }
