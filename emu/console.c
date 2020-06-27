@@ -1,4 +1,4 @@
-/* console.c -- debug console 
+/* console.c -- debug console
    Copyright (C) 1998 Jerome Thoen
 
    This program is free software; you can redistribute it and/or modify
@@ -37,6 +37,7 @@ static int console_active = 0;
 static int autof = 1;
 static int cps = 50000;
 static volatile int alrmf = 0;
+static int noquit = 0;
 
 static void sigbrkhandler(int sigtype)
 {
@@ -54,7 +55,7 @@ void console_init(void)
   printf("sim6809 v0.1 - 6809 simulator\nCopyright (c) 1998 by Jerome Thoen\n\n");
 }
 
-int m6809_system(void) 
+int m6809_system(void)
 {
   static char input[256];
   char *p = input;
@@ -86,7 +87,7 @@ int m6809_system(void)
     set_memb(rs + 1, ra);
     rti();
     return 0;
-  case 3: 	// print character in B
+  case 3:	// print character in B
     putchar(rb);
     rti();
     return 0;
@@ -124,7 +125,7 @@ int execute()
     }
     if (activate_console && n > 0)
       cycles += n;
-    
+
     if (n == SYSTEM_CALL) {
       r = m6809_system();
       if (r == 1) activate_console = 1;
@@ -179,7 +180,7 @@ tt_u16 readhex(char **c)
       val += nc - 'A' + 10;
     }
   }
-  
+
   return val;
 }
 
@@ -195,7 +196,7 @@ int readint(char **c)
     val *= 10;
     val += nc - '0';
   }
-  
+
   return val;
 }
 
@@ -224,8 +225,8 @@ char next_char(char **c)
 {
   ignore_ws(c);
   return *(*c)++;
-} 
-  
+}
+
 void console_command()
 {
   static char input[80], copy[80];
@@ -245,13 +246,15 @@ void console_command()
     console_active = 1;
     printf("> ");
     fflush(stdout);
-    if(fgets(input, 80, stdin) == 0)
-      return;
+    if(fgets(input, 80, stdin) == 0) {
+	if (noquit == 0) return;
+	else printf("quit disabled\n");
+    }
     if (strlen(input) == 1)
       strptr = copy;
     else
       strptr = strcpy(copy, input);
-    
+
     switch (next_char(&strptr)) {
     case 'a':
       printf("Begin upload\n");
@@ -269,9 +272,9 @@ void console_command()
 	  end = readhex(&strptr);
 	else
 	  end = start;
-      } else 
+      } else
 	start = end = memadr;
-      
+
       for(n = start; n <= end && n < 0x10000; n += dis6809((tt_u16)n, stdout));
 
       memadr = (tt_u16)n;
@@ -303,13 +306,13 @@ void console_command()
       break;
     case 'h' : case '?' :
       printf("     HELP for the 6809 simulator debugger\n\n");
-      printf("   a               : upload s19 file\n");
+      printf("   a               : upload s-records\n");
       printf("   c               : clear memory\n");
       printf("   d [start] [end] : disassemble memory from <start> to <end>\n");
       printf("   f adr           : step forward until PC = <adr>\n");
       printf("   g [adr]         : start execution at current address or <adr>\n");
       printf("   h, ?            : show this help page\n");
-      printf("   l file          : load Intel Hex binary <file>\n");
+      printf("   l file          : load s-records from <file>\n");
       printf("   m [start] [end] : dump memory from <start> to <end>\n");
       printf("   n [n]           : next [n] instruction(s)\n");
       printf("   p adr           : set PC to <adr>\n");
@@ -336,7 +339,7 @@ void console_command()
 	  end = readhex(&strptr);
 	else
 	  end = n;
-      } else 
+      } else
 	n = end = memadr;
       while (n <= (long)end) {
 	printf("%04hX: ", (unsigned int)n);
@@ -380,7 +383,9 @@ void console_command()
 	printf("Syntax Error. Type 'h' to show help.\n");
       break;
     case 'q' :
-      return;
+      if (noquit == 0) return;
+      else printf("quit disabled\n");
+      break;
     case 'r' :
       m6809_dumpregs();
       break;
@@ -411,9 +416,9 @@ void console_command()
 	} else
 	  printf("Syntax Error. Type 'h' to show help.\n");
       else {
-	double sec = (double)cycles / 1000000.0;
+	  double sec = (double)cycles / (float)cps;
 
-	printf("Cycle counter: %ld\nEstimated time at 1 Mhz : %g seconds\n", cycles, sec);
+	  printf("Cycle counter: %ld\nEstimated time at %d hz : %g seconds\n", cycles, cps, sec);
       }
       break;
     default :
@@ -427,7 +432,8 @@ static void printusage(void) {
     puts("sim6809: -h -n [file [...]]\n"
 	 "  -t #  throttle to # cycles per second, 50k default, 0 = max\n"
 	 "  -h    print this help\n"
-	 "  -n    start machine in debugging console"
+	 "  -n    start machine in debugging console\n"
+	 "  -q    don't allow quitting (must be killed)"
 	 );
     exit(1);
 }
@@ -451,6 +457,7 @@ void parse_cmdline(int argc, char **argv)
       cps = atoi(*argv++);
       fprintf(stderr,"cps = %d\n", cps);
   }
+  if (!strcmp(*argv, "-q")) noquit = 1;
   while (argc-- > 0)
     load_motos1(*argv++);
 }
