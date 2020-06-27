@@ -253,6 +253,10 @@ void console_command()
       strptr = strcpy(copy, input);
     
     switch (next_char(&strptr)) {
+    case 'a':
+      printf("Begin upload\n");
+      load_motos1_2(stdin);
+      break;
     case 'c' :
       for (n = 0; n < 0x10000; n++)
 	set_memb((tt_u16)n, 0);
@@ -299,6 +303,7 @@ void console_command()
       break;
     case 'h' : case '?' :
       printf("     HELP for the 6809 simulator debugger\n\n");
+      printf("   a               : upload s19 file\n");
       printf("   c               : clear memory\n");
       printf("   d [start] [end] : disassemble memory from <start> to <end>\n");
       printf("   f adr           : step forward until PC = <adr>\n");

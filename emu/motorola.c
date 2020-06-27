@@ -1,5 +1,5 @@
 /* vim: set noexpandtab ai ts=4 sw=4 tw=4:
-   motorola.c -- Motorola S1 support 
+   motorola.c -- Motorola S1 support
    Copyright (C) 1999 Noah Vawter
 
    This program is free software; you can redistribute it and/or modify
@@ -16,6 +16,11 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
+/*
+   fixme: this doesn't really handle S9 correctly, or line cksums (at all)
+   and make tons of assumptions..
+*/
+
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -23,29 +28,36 @@
 #include "config.h"
 #include "emu6809.h"
 
-int load_motos1(char *filename)
+
+int load_motos1(char *filename) {
+    FILE *fi;
+    int ret;
+    printf("loading %s\n", filename);
+    fi = fopen(filename,"r");
+    if (fi==NULL) {
+	printf("can't open it, sorry.\n");
+	return(0);
+    }
+    ret = load_motos1_2(fi);
+    fclose(fi);
+    return ret;
+}
+
+
+int load_motos1_2(FILE *fi)
 {
   char buf[201];
   char *r;
   int num_bytes,i,p,done=0;
   long start_addr;
   unsigned char value;
-  FILE *fi;
-	
-  printf("loading %s\n", filename);
-  fi=fopen(filename,"r");
-  if(fi==NULL)
-  {
-    printf("can't open it, sorry.\n");
-    return(0);
-  }
-  
+
   r = fgets(buf,200,fi);
   while(!done)
   {
     /* read len */  /* 2 bytes of addr, 1 byte is checksum */
     num_bytes = (16*hex_to_int(buf[2])+hex_to_int(buf[3]))-3;
-    
+
     /* read addr */
     start_addr=0;
     for(p=4,i=0;i<4;i++)
@@ -67,7 +79,6 @@ int load_motos1(char *filename)
     r = fgets(buf,200,fi);
     if(feof(fi))done=1;
   }
-  fclose(fi);
   return(1);
 }
 
