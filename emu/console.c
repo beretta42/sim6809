@@ -21,6 +21,7 @@
 #include <stdint.h>
 #include <signal.h>
 #include <unistd.h>
+#include <termios.h>
 #include <ctype.h>
 
 #include "config.h"
@@ -441,6 +442,7 @@ static void printusage(void) {
 
 void parse_cmdline(int argc, char **argv)
 {
+  struct termios t;
   if (--argc == 0) {
     autof = 0;
     return;
@@ -457,7 +459,12 @@ void parse_cmdline(int argc, char **argv)
       cps = atoi(*argv++);
       fprintf(stderr,"cps = %d\n", cps);
   }
-  if (!strcmp(*argv, "-q")) noquit = 1;
+  if (!strcmp(*argv, "-q")) {
+      noquit = 1;
+      tcgetattr(0, &t);
+      t.c_cc[VEOF] = 0;
+      tcsetattr(0, TCSANOW, &t);
+  }
   while (argc-- > 0)
     load_motos1(*argv++);
 }
