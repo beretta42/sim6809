@@ -88,7 +88,7 @@ void acia_run() {
     acia_start();
     if (ilen == 0) {
 	ret = read(0, ibuf, BUFZ);
-	if (ret > 1) {
+	if (ret > 0) {
 	    ilen = ret;
 	    ipos = 0;
 	    if (irqen) {
@@ -110,12 +110,12 @@ uint8_t acia_rreg(int reg) {
 	return i;
     case 1:
 	if (ilen) {
+	    irqf = 0;
 	    ilen--;
 	    return ibuf[ipos++];
-	    irqf = 0;
 	}
     }
-    return 0xff;
+    return 0x00;
 }
 
 void acia_wreg(int reg, uint8_t val) {
