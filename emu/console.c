@@ -261,6 +261,7 @@ void console_command()
 	}
 	continue;
     }
+    input[ret] = 0;
     if (ret == 0) {
 	if (noquit == 0) return;
 	else printf("quit disabled\n");
