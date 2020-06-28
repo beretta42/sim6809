@@ -58,50 +58,6 @@ void console_init(void)
   printf("sim6809 v0.1 - 6809 simulator\nCopyright (c) 1998 by Jerome Thoen\n\n");
 }
 
-int m6809_system(void)
-{
-  static char input[256];
-  char *p = input;
-  tt_u8 c;
-
-  switch (ra) {
-  case 0 :
-    printf("Program terminated\n");
-    rti();
-    return 1;
-  case 1 :
-    while ((c = get_memb(rx++)))
-      putchar(c);
-    rti();
-    return 0;
-  case 2 :
-    ra = 0;
-    if (rb) {
-      fflush(stdout);
-      if (fgets(input, rb, stdin)) {
-	do {
-	  set_memb(rx++, *p);
-	  ra++;
-	} while (*p++);
-	ra--;
-      } else
-	set_memb(rx, 0);
-    }
-    set_memb(rs + 1, ra);
-    rti();
-    return 0;
-  case 3:	// print character in B
-    putchar(rb);
-    rti();
-    return 0;
-
-  default :
-    printf("Unknown system call %d\n", ra);
-    rti();
-    return 0;
-  }
-}
-
 
 static void do_alarm(int sig) {
     alrmf = 1;
@@ -129,11 +85,7 @@ int execute()
     if (activate_console && n > 0)
       cycles += n;
 
-    if (n == SYSTEM_CALL) {
-      r = m6809_system();
-      if (r == 1) activate_console = 1;
-    }
-    else if (n < 0) {
+    if (n < 0) {
       printf("m6809 run time error, return code %d\n", n);
       activate_console = r = 1;
     }
@@ -151,9 +103,7 @@ void execute_addr(tt_u16 addr)
       cycles += n;
       hard_poll();
     }
-    if (n == SYSTEM_CALL)
-      activate_console = m6809_system();
-    else if (n < 0) {
+    if (n < 0) {
       printf("m6809 run time error, return code %d\n", n);
       activate_console = 1;
     }

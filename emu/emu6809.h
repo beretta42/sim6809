@@ -40,13 +40,10 @@ int pchistnbr;
 #define ERR_INVALID_ADDRMODE -3
 #define ERR_INVALID_EXGR -4
 
-#define SYSTEM_CALL -100
-
 /* prototypes */
 
 /* console.c */
 void console_init(void);
-int m6809_system(void);
 int execute(void);
 void execute_addr(tt_u16 addr);
 void ignore_ws(char **c);

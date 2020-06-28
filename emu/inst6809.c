@@ -793,10 +793,7 @@ void swi()
   cce = 1;
   do_psh(&rs, &ru, 0xff);
   cci = ccf = 1;
-  /*
   rpc = get_memw(0xfffa);
-  */
-  err6809 = SYSTEM_CALL;
 }
 
 void swi2()
