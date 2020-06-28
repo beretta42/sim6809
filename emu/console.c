@@ -276,7 +276,7 @@ void console_command()
       printf("quit disabled\n");
       break;
     case 'a':
-      printf("Begin upload\n");
+      printf("begin srec upload, '.' to end\n");
       load_motos1_2(stdin);
       break;
     case 'c' :

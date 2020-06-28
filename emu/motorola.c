@@ -16,11 +16,6 @@
    along with this program; if not, write to the Free Software
    Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
 
-/*
-   fixme: this doesn't really handle S9 correctly, or line cksums (at all)
-   and make tons of assumptions..
-*/
-
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
@@ -28,6 +23,32 @@
 #include "config.h"
 #include "emu6809.h"
 
+
+static char buf[201];
+static int ilen = 0;
+static int ipos = 0;
+static int cksum = 0;
+
+static int hex_to_int(char x) {
+    x=toupper(x);
+
+    if( x>= '0' && x<= '9') return(x-'0');
+    return(10+(x-'A'));
+}
+
+static int getn(void) {
+    return hex_to_int(buf[ipos++]);
+}
+
+static int getb(void) {
+    int i = (getn() << 4) + getn();
+    cksum += i;
+    return i;
+}
+
+static int mygetw(void) {
+    return (getb() << 8) + getb();
+}
 
 int load_motos1(char *filename) {
     FILE *fi;
@@ -46,46 +67,57 @@ int load_motos1(char *filename) {
 
 int load_motos1_2(FILE *fi)
 {
-  char buf[201];
-  char *r;
-  int num_bytes,i,p,done=0;
-  long start_addr;
-  unsigned char value;
+  int num_bytes;
+  int i;
+  int start_addr;
+  int recnum = 0;
 
-  r = fgets(buf,200,fi);
-  while(!done)
-  {
-    /* read len */  /* 2 bytes of addr, 1 byte is checksum */
-    num_bytes = (16*hex_to_int(buf[2])+hex_to_int(buf[3]))-3;
+  while (fgets(buf,200,fi)) {
+      ipos = 2;
+      ilen = strlen(buf);
+      if (ilen == 0) return 0;
+      if (buf[0] == '.' ) return 0;
+      if (buf[0] == 10 || buf[0] == 13) continue;
+      if (ilen < 10) {
+	  fprintf(stderr,"BAD SREC line length\n");
+	  return -1;
+      }
+      if (buf[0] != 'S') {
+	  fprintf(stderr,"SREC doesn't start with 'S'\n");
+	  return -1;
+      }
+      cksum = 0;
+      num_bytes = getb() - 3;
+      start_addr=mygetw();
 
-    /* read addr */
-    start_addr=0;
-    for(p=4,i=0;i<4;i++)
-      start_addr = (start_addr<<4) + hex_to_int(buf[p++]);
-
-    /* read data */
-    for(i=0;i<num_bytes;i++) {
-      value = 16*hex_to_int(buf[p])+hex_to_int(buf[p+1]);
-      p+=2;
-      set_memb(start_addr+i,value);
-      //      printf("0x%08x: 0x%02x\n",start_addr+i,value);
-    }
-
-    /* check for ending */
-    if(!strncmp("S9",buf,2))
-    {
-      break;   /* done */
-    }
-    r = fgets(buf,200,fi);
-    if(feof(fi))done=1;
+      switch (buf[1]) {
+      case '0':
+	  printf("S5 header: ");
+	  for(i = 0; i < num_bytes; i++)
+	      printf("%c", getb());
+	  printf("\n");
+	  break;
+      case '1':
+	  recnum++;
+	  for(i=0;i<num_bytes;i++)
+	      set_memb(start_addr++,getb());
+	  break;
+      case '5':
+	  if (start_addr != recnum) {
+	      fprintf(stderr,"ERROR: bad number of s-records\n");
+	      return -1;
+	  }
+	  recnum = 0;
+	  continue;
+      case '9':
+	  rpc = start_addr;
+	  break;
+      default:
+	  fprintf(stderr,"unsupported srec type: %c\n", buf[1]);
+	  return -1;
+      }
+      i = (~cksum) & 0xff;
+      if (i != getb())
+	  fprintf(stderr,"warning bad checksum in line %d\n", recnum);
   }
-  return(1);
-}
-
-int hex_to_int(char x)
-{
-	x=toupper(x);
-
-	if( x>= '0' && x<= '9') return(x-'0');
-	return(10+(x-'A'));
 }
