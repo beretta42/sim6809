@@ -21,9 +21,11 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdint.h>
+#include <termios.h>
 
 #include "../emu/config.h"
 #include "../emu/emu6809.h"
+#include "../emu/console.h"
 #include "acia.h"
 #include "hardware.h"
 
@@ -52,19 +54,20 @@ static int omode = 0;
 #define O_ZBUF 1
 #define O_NBUF 2
 #define O_FLUSH 4
+#define O_ECHO  8
 #define O_IE 128
 
 static int irqen = 0;
 static int irqf  = 0;
 
+static int fc;
+
 void acia_stop(void) {
-    int i = fcntl(0, F_GETFL, 0);
-    fcntl(0, F_SETFL, i & ~O_NONBLOCK);
+    fcntl(0, F_SETFL, fc & ~O_NONBLOCK);
 }
 
 void acia_start(void) {
-    int i = fcntl(0, F_GETFL, 0);
-    fcntl(0, F_SETFL, i | O_NONBLOCK);
+    fcntl(0, F_SETFL, fc | O_NONBLOCK);
 }
 
 int acia_init(int argc, char *argv[]) {
@@ -74,6 +77,7 @@ int acia_init(int argc, char *argv[]) {
     omode = 0;
     irqen = 0;
     irqf = 0;
+    fc = fcntl(0, F_GETFL, 0);
     acia_stop();
     hard_addfd(0);
     return 0;
@@ -119,18 +123,39 @@ uint8_t acia_rreg(int reg) {
 }
 
 void acia_wreg(int reg, uint8_t val) {
+    struct termios t;
+    tcgetattr(0, &t);
+
     switch (reg & 0x01) {
     case 0:
+
 	if (val & O_IE) irqen = 1;
+
 	omode = val & O_BUFMASK;
+	switch (omode) {
+	case O_LBUF:
+	case O_ZBUF:
+	    t.c_lflag |= ICANON; break;
+	case O_NBUF:
+	    t.c_lflag &= ~ICANON; break;
+	}
+
+	if (val & O_ECHO)
+	    t.c_lflag |= ECHO;
+	else
+	    t.c_lflag &= ~ECHO;
+	tcsetattr(1, TCSANOW, &t);
+
 	if (val & O_FLUSH) {
 	    write(1,obuf,olen);
+
 	}
 	break;
     case 1:
 	obuf[olen++] = val;
-    send:
-	if (val == '\n' || olen == BUFZ) {
+	if (omode == O_NBUF ||
+	    (omode == O_LBUF && val == '\n') ||
+	     olen == BUFZ) {
 	    write(1,obuf,olen);
 	    olen = 0;
 	}

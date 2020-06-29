@@ -41,6 +41,9 @@ static int autof = 1;
 static int cps = 50000;
 static volatile int alrmf = 0;
 static int noquit = 0;
+static struct termios tc_orig;
+static struct termios tc_cmd;
+static struct termios tc_exec;
 
 static void sigbrkhandler(int sigtype)
 {
@@ -56,6 +59,11 @@ static void setup_brkhandler(void)
 void console_init(void)
 {
   printf("sim6809 v0.1 - 6809 simulator\nCopyright (c) 1998 by Jerome Thoen\n\n");
+  if (tcgetattr(0,&tc_orig) < 0) {
+      perror("in console_init(): tcgetattr");
+  }
+  tcgetattr(0, &tc_cmd);
+  tcgetattr(0, &tc_exec);
 }
 
 
@@ -72,6 +80,7 @@ int execute()
   int r = 0;
   int i = 0;
 
+  tcsetattr(0, TCSANOW, &tc_exec);
   do {
     while ((n = m6809_execute()) > 0 && !activate_console) {
       cycles += n;
@@ -90,14 +99,15 @@ int execute()
       activate_console = r = 1;
     }
   } while (!activate_console);
-
+  tcgetattr(0, &tc_exec);
+  tcsetattr(0, TCSANOW, &tc_cmd);
   return r;
 }
 
 void execute_addr(tt_u16 addr)
 {
   int n;
-
+  tcsetattr(0, TCSANOW, &tc_exec);
   while (!activate_console && rpc != addr) {
     while ((n = m6809_execute()) > 0 && !activate_console && rpc != addr) {
       cycles += n;
@@ -108,6 +118,8 @@ void execute_addr(tt_u16 addr)
       activate_console = 1;
     }
   }
+  tcgetattr(0, &tc_exec);
+  tcsetattr(0, TCSANOW, &tc_cmd);
 }
 
 void ignore_ws(char **c)
@@ -443,12 +455,17 @@ void parse_cmdline(int argc, char **argv)
     load_motos1(*argv++);
 }
 
+void my_atexit(void) {
+    tcsetattr(0, TCSANOW, &tc_orig);
+}
+
 int main(int argc, char **argv)
 {
   if (!memory_init())
     return 1;
   parse_cmdline(argc, argv);
   console_init();
+  atexit(my_atexit);
   m6809_init();
   setup_brkhandler();
 
