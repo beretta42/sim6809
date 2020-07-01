@@ -62,11 +62,11 @@ static int irqf  = 0;
 
 static int fc;
 
-void acia_stop(void) {
+static void acia_stop(void) {
     fcntl(0, F_SETFL, fc & ~O_NONBLOCK);
 }
 
-void acia_start(void) {
+static void acia_start(void) {
     fcntl(0, F_SETFL, fc | O_NONBLOCK);
 }
 
@@ -111,10 +111,10 @@ uint8_t acia_rreg(int reg) {
     case 0:
 	if (ilen) i |= 1;
 	if (irqf) i |= 0x80;
+	irqf = 0;
 	return i;
     case 1:
 	if (ilen) {
-	    irqf = 0;
 	    ilen--;
 	    return ibuf[ipos++];
 	}
