@@ -36,6 +36,7 @@
 long cycles = 0;
 
 int activate_console = 0;
+int watchpoint = -1;
 static int console_active = 0;
 static int autof = 1;
 static int cps = 50000;
@@ -44,6 +45,7 @@ static int noquit = 0;
 static struct termios tc_orig;
 static struct termios tc_cmd;
 static struct termios tc_exec;
+
 
 static void sigbrkhandler(int sigtype)
 {
@@ -304,6 +306,7 @@ void console_command()
       printf("   t               : flush PC history\n");
 #endif
       printf("   u               : toggle dump registers\n");
+      printf("   w adr           : set watch point address\n");
       printf("   x               : reboot machine\n");
       printf("   y [0]           : show number of 6809 cycles [or set it to 0]\n");
       break;
@@ -403,6 +406,12 @@ void console_command()
 	  printf("Cycle counter: %ld\nEstimated time at %d hz : %g seconds\n", cycles, cps, sec);
       }
       break;
+    case 'w':
+	if(more_params(&strptr))
+	    watchpoint = readhex(&strptr);
+	else
+	    printf("Syntax Error, address expected\n");
+	break;
     case 'x' :
       console_active = 0;
       reset_reboot();

@@ -49,6 +49,10 @@ tt_u16 get_memw(tt_u16 adr)
 
 void set_memb(tt_u16 adr, tt_u8 val)
 {
+    if (watchpoint != -1 && adr == watchpoint) {
+	printf("watchpoint hit, addr %x, val %x\n", adr, val);
+	activate_console = 1;
+    }
     if (adr >= 0xff00 && adr < 0xfff0) hard_set(adr, val);
     ramdata[adr] = val;
 }
