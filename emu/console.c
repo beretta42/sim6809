@@ -35,7 +35,7 @@
 
 long cycles = 0;
 
-static int activate_console = 0;
+int activate_console = 0;
 static int console_active = 0;
 static int autof = 1;
 static int cps = 50000;

@@ -12,9 +12,11 @@
 #include "../emu/motorola.h"
 #include "../emu/config.h"
 #include "../emu/emu6809.h"
+#include "../emu/console.h"
 
 #define O_RESET  1
 #define O_STOP   2
+#define O_BREAK  4
 #define O_HUP    64
 #define O_IE     128
 
@@ -118,5 +120,9 @@ void reset_wreg(int adr, uint8_t val) {
     if (val & O_STOP) {
 	fprintf(stderr,"*** process stoped\n");
 	exit(0);
+    }
+    if (val & O_BREAK) {
+	fprintf(stderr,"*** program break\n");
+	activate_console = 1;
     }
 }

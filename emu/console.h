@@ -19,3 +19,4 @@
 
 // extern int activate_console;
 extern int debugio;
+extern int activate_console;
