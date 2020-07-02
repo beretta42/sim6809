@@ -53,6 +53,7 @@ static int tunfd;
 static char tundev[256];
 
 static uint8_t status;
+static int irqen = 0;
 
 #define ST_RX     1
 #define ST_TX     2
@@ -117,6 +118,7 @@ int packet_init(int argc, char *argv[]) {
     ilen = 0;
     ipos = ibuf;
     status = 0;
+    irqen = 0;
 }
 
 void packet_deinit(void) {
@@ -125,19 +127,15 @@ void packet_deinit(void) {
 
 void packet_run(void) {
     int ret;
-    if (status & ST_INT) {
-	irq();
-	return;
-    }
     if (ilen == 0) {
 	ret = read(tunfd, ibuf, MAXBUF);
 	if (ret < 0) return;
 	ilen = ret;
 	ipos = ibuf;
 	status |= ST_INT | ST_RX;
-	irq();
     }
-    return;
+    if (status & ST_INT && irqen)
+	irq();
 }
 
 uint8_t packet_rreg(int reg) {
@@ -175,6 +173,7 @@ void packet_wreg(int reg, uint8_t val) {
 	ilen = 0;
 	break;
     case 3:
+	irqen = val & ST_INT;
 	break;
     }
 }
