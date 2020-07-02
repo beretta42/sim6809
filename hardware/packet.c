@@ -129,7 +129,7 @@ void packet_run(void) {
     int ret;
     if (ilen == 0) {
 	ret = read(tunfd, ibuf, MAXBUF);
-	if (ret < 0) return;
+	if (ret <= 0) return;
 	ilen = ret;
 	ipos = ibuf;
 	status |= ST_INT | ST_RX;
@@ -151,7 +151,7 @@ uint8_t packet_rreg(int reg) {
 	return ilen & 255;
     case 3:
 	if (ilen) {
-	    ilen--;
+	    if (--ilen == 0) status &= ~ST_RX;
 	    return *ipos++;
 	}
 	return 0;
