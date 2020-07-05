@@ -73,22 +73,22 @@ static int tun_alloc(char *dev, int flags)
     /* open the clone device */
     if ((fd = open(clonedev, O_RDWR|O_NONBLOCK)) < 0)
     {
-        perror("tun_alloc");
-        return fd;
+	perror("tun_alloc");
+	return fd;
     }
     /* preparation of the struct ifr, of type "struct ifreq" */
     memset(&ifr, 0, sizeof(ifr));
     ifr.ifr_flags = flags;
     if (*dev)
     {
-        strncpy(ifr.ifr_name, dev, IFNAMSIZ);
+	strncpy(ifr.ifr_name, dev, IFNAMSIZ);
     }
     /* try to create the device */
     if ((err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0)
     {
-        perror("tun_alloc");
-        close(fd);
-        return err;
+	perror("tun_alloc");
+	close(fd);
+	return err;
     }
     /* write acquired tap device name back to struct */
     strcpy(dev, ifr.ifr_name);
@@ -108,12 +108,18 @@ int packet_init(int argc, char *argv[]) {
     strcpy(tundev, "tap0");
  go:
     tunfd = tun_alloc(tundev, IFF_TAP | IFF_NO_PI);
-    if (tunfd < 0) fprintf(stderr,"packet.c: Cannot open tunnel\n");
+    if (tunfd < 0) {
+	fprintf(stderr,"packet.c: Cannot open tunnel\n");
+	return -1;
+    }
     else
 	fprintf(stderr,"opened tap device: %s\n", tundev);
     hard_addfd(tunfd);
-    sprintf(cmd, "ip link set %s up", tundev);
-    system(cmd);
+
+    if ( getpid() == 0) {
+	sprintf(cmd, "ip link set %s up", tundev);
+	system(cmd);
+    }
     olen = 0;
     ilen = 0;
     ipos = ibuf;
