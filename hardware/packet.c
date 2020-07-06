@@ -86,7 +86,7 @@ static int tun_alloc(char *dev, int flags)
     /* try to create the device */
     if ((err = ioctl(fd, TUNSETIFF, (void *) &ifr)) < 0)
     {
-	perror("tun_alloc");
+	perror("in tun_alloc(): ioctl");
 	close(fd);
 	return err;
     }
@@ -109,7 +109,7 @@ int packet_init(int argc, char *argv[]) {
  go:
     tunfd = tun_alloc(tundev, IFF_TAP | IFF_NO_PI);
     if (tunfd < 0) {
-	fprintf(stderr,"packet.c: Cannot open tunnel\n");
+	fprintf(stderr,"%s: Cannot open tunnel\n", tundev);
 	return -1;
     }
     else

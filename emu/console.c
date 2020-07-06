@@ -438,30 +438,38 @@ static void printusage(void) {
 void parse_cmdline(int argc, char **argv)
 {
   struct termios t;
-  if (--argc == 0) {
+  if (argc == 1) {
     autof = 0;
     return;
   }
+  argc--;
   argv++;
-  if (!strcmp(*argv, "-h")) printusage();
-  if (!strcmp(*argv, "-n")) {
-      autof = 0;
-      if (argc-- > 0) argv++;
+  while ((*argv)[0] == '-') {
+      switch ((*argv)[1]) {
+      case 'n':
+	  autof = 0;
+	  break;
+      case 't':
+	  cps = atoi(*argv + 2);
+	  break;
+      case 'q':
+	  noquit = 1;
+	  tcgetattr(0, &t);
+	  t.c_cc[VEOF] = 0;
+	  tcsetattr(0, TCSANOW, &t);
+	  break;
+      case 'd':
+	  break;
+      case 'h':
+      default:
+	  printusage();
+      }
+      argc--;
+      argv++;
   }
-  if (!strcmp(*argv, "-t")) {
-      if (argc-- > 0) argv++;
-      else printusage();
-      cps = atoi(*argv++);
-      fprintf(stderr,"cps = %d\n", cps);
+  while (argc-- > 0) {
+      load_motos1(*argv++);
   }
-  if (!strcmp(*argv, "-q")) {
-      noquit = 1;
-      tcgetattr(0, &t);
-      t.c_cc[VEOF] = 0;
-      tcsetattr(0, TCSANOW, &t);
-  }
-  while (argc-- > 0)
-    load_motos1(*argv++);
 }
 
 void my_atexit(void) {
