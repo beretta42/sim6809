@@ -5,11 +5,12 @@
     bit 0-6 interval
         0       interval = 16.666666 ms (~60hz)
         1-100   interval in ms
-        101     5 secs
-        102     10 secs
-        103     30 secs
-        104     60 secs
-        105-128 reserved (disables timer)
+	101     1 secs
+        102     5 secs
+        103     10 secs
+        104     30 secs
+        105     60 secs
+        106-128 reserved (disables timer)
 
   read address 0 (clears interrupt):
     bit 7 set if interrupt
@@ -85,15 +86,15 @@ void timer_wreg(int reg, uint8_t val) {
 	i = 0;
     else if (i == 0)
 	i = 16666666;
-    else if (i < 100)
+    else if (i <= 100)
 	i = i * 1000000;
     else {
 	switch (i) {
-	case 100: s = 1; break;
-	case 101: s = 5; break;
-	case 102: s = 10; break;
-	case 103: s = 30; break;
-	case 104: s = 60; break;
+	case 101: s = 1; break;
+	case 102: s = 5; break;
+	case 103: s = 10; break;
+	case 104: s = 30; break;
+	case 105: s = 60; break;
 	default: break;
 	}
 	i = 0;
