@@ -7,3 +7,4 @@ void hard_deinit(void);
 void hard_reinit(void);
 uint8_t hard_get(uint16_t adr);
 void hard_set(uint16_t adr, uint8_t val);
+int hard_ishard(uint16_t adr);

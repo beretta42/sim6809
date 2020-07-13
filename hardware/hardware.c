@@ -10,6 +10,7 @@
 #include "timer.h"
 #include "reset.h"
 #include "hd.h"
+#include "mmu.h"
 #include "hardware.h"
 
 #define MAXFDS 10
@@ -20,6 +21,12 @@ int maxfd = 0;
 
 int gargc = 0;
 char **gargv = NULL;
+
+
+int hard_ishard(uint16_t adr) {
+    if (adr >= 0xff00 && adr < 0xfff0 ) return 1;
+    return 0;
+}
 
 /* wait until one of the fd's above are ready to read 
    or a signals has been generated.
@@ -61,6 +68,7 @@ void hard_init(int argc, char *argv[]) {
     gargv = argv;
     fdp = 0;
     maxfd = 0;
+    mmu_init(argc, argv);
     acia_init(argc, argv);
     packet_init(argc, argv);
     timer_init();
@@ -112,6 +120,8 @@ void hard_set(uint16_t adr, uint8_t val) {
 	return reset_wreg(adr & 0xf, val);
     case 0x40:
 	return hd_wreg(adr & 0xf, val);
+    case 0x50:
+	return mmu_wreg(adr & 0xf, val);
     default:
         return;
     }

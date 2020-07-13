@@ -26,20 +26,32 @@
 #include "console.h"
 
 #include "../hardware/hardware.h"
+#include "../hardware/mmu.h"
 
 tt_u8 *ramdata;    /* 64 kb of ram */
 
 int memory_init(void)
 {
-  ramdata = (tt_u8 *)mmalloc(0x10000);
-  memset(ramdata, 0, 0x10000);
+  ramdata = (tt_u8 *)mmalloc(0x10000 * 16);
+  memset(ramdata, 0, 0x10000 * 16);
   return 1;
 }
 
+
 tt_u8 get_memb(tt_u16 adr)
 {
-    if (adr >= 0xff00 && adr < 0xfff0) return hard_get(adr);
-    return ramdata[adr];
+    uint8_t x;
+    /* don't access hardware if we're not task 0 */
+    if (tr == 0 && hard_ishard(adr)) return hard_get(adr);
+    /* if we are switching tasks flip mmu back to user task
+       and force return a 'rti' instruction
+     */
+    if (itr) {
+	tr = itr;
+	itr = 0;
+	return 0x3b;
+    }
+    return ramdata[tr * 0x10000 + adr];
 }
 
 tt_u16 get_memw(tt_u16 adr)
@@ -53,8 +65,8 @@ void set_memb(tt_u16 adr, tt_u8 val)
 	printf("watchpoint hit, addr %x, val %x\n", adr, val);
 	activate_console = 1;
     }
-    if (adr >= 0xff00 && adr < 0xfff0) hard_set(adr, val);
-    ramdata[adr] = val;
+    if (tr == 0 && hard_ishard(adr)) hard_set(adr, val);
+    ramdata[tr * 0x10000 + adr] = val;
 }
 
 void set_memw(tt_u16 adr, tt_u16 val)
@@ -62,5 +74,3 @@ void set_memw(tt_u16 adr, tt_u16 val)
   set_memb(adr, (tt_u8)(val >> 8));
   set_memb(adr + 1, (tt_u8)val);
 }
-
-

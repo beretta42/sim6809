@@ -1,7 +1,7 @@
 SRCS = console.c dis6809.c emu6809.c inst6809.c int6809.c intel.c memory.c
 SRCS += misc.c miscutils.c motorola.c ../hardware/acia.c ../hardware/packet.c
 SRCS += ../hardware/timer.c ../hardware/hardware.c ../hardware/reset.c
-SRCS += ../hardware/hd.c
+SRCS += ../hardware/hd.c ../hardware/mmu.c
 
 CFLAGS = -I. -lutil
 

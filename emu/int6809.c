@@ -17,15 +17,18 @@
 
 
 #include <stdio.h>
+#include <stdint.h>
 
 #include "config.h"
 #include "emu6809.h"
 #include "calc6809.h"
+#include "../hardware/mmu.h"
 
 void reset(void)
 {
   rdp = 0;
   ccf = cci = 0;
+  tr = 0;
   rpc = get_memw(0xfffe);
 }
 
@@ -35,6 +38,7 @@ void irq(void)
     cce = 1;
     do_psh(&rs, &ru, 0xff);
     cci = 1;
+    tr = 0;
     rpc = get_memw(0xfff8);
     nbcycle = 21;
   }
@@ -46,6 +50,7 @@ void firq(void)
     cce = 0;
     do_psh(&rs, &ru, 0x81);
     cci = ccf = 1;
+    tr = 0;
     rpc = get_memw(0xfff6);
     nbcycle = 12;
   }

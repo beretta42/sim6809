@@ -23,6 +23,7 @@
 #include "emu6809.h"
 #include "calc6809.h"
 #include "../hardware/hardware.h"
+#include "../hardware/mmu.h"
 
 void abx()
 {
@@ -793,6 +794,7 @@ void swi()
   cce = 1;
   do_psh(&rs, &ru, 0xff);
   cci = ccf = 1;
+  tr = 0;
   rpc = get_memw(0xfffa);
 }
 
@@ -800,6 +802,7 @@ void swi2()
 {
   cce = 1;
   do_psh(&rs, &ru, 0xff);
+  tr = 0;
   rpc = get_memw(0xfff4);
 }
 
@@ -807,6 +810,7 @@ void swi3()
 {
   cce = 1;
   do_psh(&rs, &ru, 0xff);
+  tr = 0;
   rpc = get_memw(0xfff2);
 }
 
