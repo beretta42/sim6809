@@ -100,8 +100,8 @@ int packet_init(int argc, char *argv[]) {
     char cmd[256];
     int i;
     for (i = 1; i < argc; i++) {
-	if (!strncmp(argv[i],"-d", 2)) {
-	    strcpy(tundev, argv[i]+2);
+	if (!strncmp(argv[i],"-dpkt:dev:", 10)) {
+	    strcpy(tundev, argv[i]+10);
 	    goto go;
 	}
     }
