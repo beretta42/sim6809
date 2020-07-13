@@ -9,6 +9,7 @@
 #include "packet.h"
 #include "timer.h"
 #include "reset.h"
+#include "hd.h"
 #include "hardware.h"
 
 #define MAXFDS 10
@@ -64,6 +65,7 @@ void hard_init(int argc, char *argv[]) {
     packet_init(argc, argv);
     timer_init();
     reset_init(argc, argv);
+    hd_init(argc, argv);
 }
 
 void hard_reinit(void) {
@@ -90,6 +92,8 @@ uint8_t hard_get(uint16_t adr) {
       return timer_rreg(adr & 0xf);
   case 0x30:
       return reset_rreg(adr & 0xf);
+  case 0x40:
+      return hd_rreg(adr & 0xf);
   default:
       return 0;
   }
@@ -106,6 +110,8 @@ void hard_set(uint16_t adr, uint8_t val) {
 	return timer_wreg(adr & 0xf, val);
     case 0x30:
 	return reset_wreg(adr & 0xf, val);
+    case 0x40:
+	return hd_wreg(adr & 0xf, val);
     default:
         return;
     }
